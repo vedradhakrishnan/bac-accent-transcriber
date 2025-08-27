@@ -61,3 +61,10 @@ checkpoints/
 client/node_modules/
 client/.next/
 client/out/
+
+server/model/
+server/.env
+.idea/
+.vscode/
+*.pyo
+*.pyd
