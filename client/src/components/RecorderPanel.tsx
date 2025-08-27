@@ -31,7 +31,7 @@ export default function RecorderPanel() {
 
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      setTranscript(data.transcript || "(no text)");
+      setTranscript(data.text || "(no text)");
       setStatus("Done.");
     } catch (e: any) {
       setStatus("Failed.");
