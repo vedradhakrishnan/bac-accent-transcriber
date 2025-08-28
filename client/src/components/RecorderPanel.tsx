@@ -3,25 +3,80 @@
 import React, { useMemo, useState } from "react";
 import { useRecorder } from "@/hooks/useRecorder";
 
+type WakeReply = { starting: boolean; healthy?: boolean; apiBase: string };
+
+async function wakeServer(): Promise<WakeReply> {
+  // Calls your Next.js API route (see section 2)
+  const r = await fetch("/api/wake", { method: "POST" });
+  if (!r.ok) throw new Error(`Wake failed: ${r.status}`);
+  return r.json();
+}
+
+async function waitForHealth(apiBase: string, timeoutMs = 180_000, intervalMs = 3000) {
+  const deadline = Date.now() + timeoutMs;
+  const base = apiBase.replace(/\/$/, "");
+  while (Date.now() < deadline) {
+    try {
+      const res = await fetch(`${base}/health`, { cache: "no-store" });
+      if (res.ok) return true;
+    } catch { /* ignore and retry */ }
+    await new Promise(r => setTimeout(r, intervalMs));
+  }
+  throw new Error("Server did not become healthy in time");
+}
+
 export default function RecorderPanel() {
   const { start, stop, clear, blob, mimeType, recording } = useRecorder();
+
   const [status, setStatus] = useState<string>("");
   const [transcript, setTranscript] = useState<string>("—");
   const [loading, setLoading] = useState(false);
+  const [waking, setWaking] = useState(false);
+  const [ready, setReady] = useState(false);
+
+  // Default for local dev; will be overwritten by wake response
   const [apiBase, setApiBase] = useState<string>(process.env.NEXT_PUBLIC_API_BASE || "");
 
   const audioURL = useMemo(() => (blob ? URL.createObjectURL(blob) : ""), [blob]);
   const sizeKB = blob ? (blob.size / 1024).toFixed(1) : "0";
 
+  async function ensureReady() {
+    if (ready && apiBase) return;
+    setWaking(true);
+    setStatus("Waking server…");
+    try {
+      const wake = await wakeServer(); // { starting, healthy?, apiBase }
+      setApiBase(wake.apiBase);
+      if (!wake.healthy) {
+        setStatus("Waiting for health…");
+        await waitForHealth(wake.apiBase);
+      }
+      setReady(true);
+      setStatus("Server is ready.");
+    } catch (e: any) {
+      setReady(false);
+      throw e;
+    } finally {
+      setWaking(false);
+    }
+  }
+
   async function upload() {
     if (!blob) return;
+
+    try {
+      await ensureReady();
+    } catch (e: any) {
+      setStatus(`Wake failed: ${e?.message || e}`);
+      return;
+    }
+
     setLoading(true);
     setStatus("Uploading & transcribing…");
     setTranscript("—");
 
     try {
       const form = new FormData();
-      // Servers commonly accept .webm/ogg/wav; your FastAPI route should read the file and transcode if needed
       form.append("file", blob, `recording.${mimeType.includes("ogg") ? "ogg" : "webm"}`);
 
       const res = await fetch(`${apiBase.replace(/\/$/, "")}/transcribe`, {
@@ -49,7 +104,7 @@ export default function RecorderPanel() {
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={start}
-            disabled={recording}
+            disabled={recording || waking}
             className="px-4 py-2 rounded-lg text-white bg-gray-900 disabled:opacity-50"
           >
             Start Recording
@@ -75,9 +130,19 @@ export default function RecorderPanel() {
           <input
             value={apiBase}
             onChange={(e) => setApiBase(e.target.value)}
-            placeholder="https://api.yourdomain.com"
+            placeholder="http://accenttranscriber.duckdns.org:8000"
             className="border rounded-lg px-3 py-2"
           />
+          {!ready && (
+            <button
+              onClick={() => ensureReady().catch(e => setStatus(`Wake failed: ${e?.message || e}`))}
+              disabled={waking}
+              className="px-3 py-2 rounded-lg border w-fit disabled:opacity-50"
+            >
+              {waking ? "Waking…" : "Wake Server"}
+            </button>
+          )}
+          {ready && <span className="text-xs text-green-600">Ready</span>}
         </div>
 
         <div>
