@@ -28,12 +28,11 @@ async function wakeServer(): Promise<WakeReply> {
   return r.json();
 }
 
-async function waitForHealth(apiBase: string, timeoutMs = 180_000, intervalMs = 3000) {
+async function waitForHealth(timeoutMs = 180_000, intervalMs = 3000) {
   const deadline = Date.now() + timeoutMs;
-  const base = apiBase.replace(/\/$/, "");
   while (Date.now() < deadline) {
     try {
-      const res = await fetch(`${base}/health`, { cache: "no-store" });
+      const res = await fetch("/api/health", { cache: "no-store" });
       if (res.ok) return true;
     } catch {
       /* ignore and retry */
@@ -52,7 +51,6 @@ export default function RecorderPanel() {
   const [waking, setWaking] = useState(false);
   const [ready, setReady] = useState(false);
 
-  // Default for local dev; will be overwritten by wake response
   const [apiBase, setApiBase] = useState<string>(process.env.NEXT_PUBLIC_API_BASE || "");
 
   const audioURL = useMemo(() => (blob ? URL.createObjectURL(blob) : ""), [blob]);
@@ -64,10 +62,10 @@ export default function RecorderPanel() {
     setStatus("Waking server…");
     try {
       const wake = await wakeServer(); // { starting, healthy?, apiBase }
-      setApiBase(wake.apiBase);
+      setApiBase(wake.apiBase); // informative; proxy uses server env internally
       if (!wake.healthy) {
         setStatus("Waiting for health…");
-        await waitForHealth(wake.apiBase);
+        await waitForHealth();
       }
       setReady(true);
       setStatus("Server is ready.");
@@ -97,10 +95,7 @@ export default function RecorderPanel() {
       const form = new FormData();
       form.append("file", blob, `recording.${mimeType.includes("ogg") ? "ogg" : "webm"}`);
 
-      const res = await fetch(`${apiBase.replace(/\/$/, "")}/transcribe`, {
-        method: "POST",
-        body: form,
-      });
+      const res = await fetch("/api/transcribe", { method: "POST", body: form });
 
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = (await res.json()) as { text?: string };
@@ -134,7 +129,7 @@ export default function RecorderPanel() {
           </div>
 
           <div className="grid gap-2">
-            <Label className="text-sm text-muted-foreground">API Base URL</Label>
+            <Label className="text-sm text-muted-foreground">API Base URL (server)</Label>
             <Input
               value={apiBase}
               onChange={(e) => setApiBase(e.target.value)}
@@ -158,7 +153,7 @@ export default function RecorderPanel() {
           </div>
 
           <div className="flex items-center gap-3">
-            <Button onClick={upload} disabled={!blob || loading || !apiBase} variant="outline">
+            <Button onClick={upload} disabled={!blob || loading} variant="outline">
               {loading ? "Processing…" : "Upload & Transcribe"}
             </Button>
             <span className="text-sm text-muted-foreground">{status}</span>
