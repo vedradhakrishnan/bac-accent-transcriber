@@ -3,10 +3,17 @@
 import React, { useMemo, useState } from "react";
 import { useRecorder } from "@/hooks/useRecorder";
 
+// shadcn/ui
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+
 type WakeReply = { starting: boolean; healthy?: boolean; apiBase: string };
 
 async function wakeServer(): Promise<WakeReply> {
-  // Calls your Next.js API route (see section 2)
   const r = await fetch("/api/wake", { method: "POST" });
   if (!r.ok) throw new Error(`Wake failed: ${r.status}`);
   return r.json();
@@ -19,8 +26,10 @@ async function waitForHealth(apiBase: string, timeoutMs = 180_000, intervalMs = 
     try {
       const res = await fetch(`${base}/health`, { cache: "no-store" });
       if (res.ok) return true;
-    } catch { /* ignore and retry */ }
-    await new Promise(r => setTimeout(r, intervalMs));
+    } catch {
+      /* ignore and retry */
+    }
+    await new Promise((r) => setTimeout(r, intervalMs));
   }
   throw new Error("Server did not become healthy in time");
 }
@@ -97,90 +106,81 @@ export default function RecorderPanel() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-5">
-      <h1 className="text-xl font-semibold mb-3">🎙️ Speech-to-Text (MVP)</h1>
-
-      <div className="space-y-4 rounded-xl border p-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={start}
-            disabled={recording || waking}
-            className="px-4 py-2 rounded-lg text-white bg-gray-900 disabled:opacity-50"
-          >
-            Start Recording
-          </button>
-          <button
-            onClick={stop}
-            disabled={!recording}
-            className="px-4 py-2 rounded-lg text-white bg-rose-600 disabled:opacity-50"
-          >
-            Stop
-          </button>
-          <button
-            onClick={clear}
-            disabled={!blob}
-            className="px-4 py-2 rounded-lg border"
-          >
-            Clear
-          </button>
-        </div>
-
-        <div className="grid gap-2">
-          <label className="text-sm text-gray-600">API Base URL</label>
-          <input
-            value={apiBase}
-            onChange={(e) => setApiBase(e.target.value)}
-            placeholder="http://accenttranscriber.duckdns.org:8000"
-            className="border rounded-lg px-3 py-2"
-          />
-          {!ready && (
-            <button
-              onClick={() => ensureReady().catch(e => setStatus(`Wake failed: ${e?.message || e}`))}
-              disabled={waking}
-              className="px-3 py-2 rounded-lg border w-fit disabled:opacity-50"
-            >
-              {waking ? "Waking…" : "Wake Server"}
-            </button>
-          )}
-          {ready && <span className="text-xs text-green-600">Ready</span>}
-        </div>
-
-        <div>
-          <button
-            onClick={upload}
-            disabled={!blob || loading || !apiBase}
-            className="px-4 py-2 rounded-lg border disabled:opacity-50"
-          >
-            {loading ? "Processing…" : "Upload & Transcribe"}
-          </button>
-          <span className="ml-3 text-sm text-gray-500">{status}</span>
-        </div>
-
-        <div className="text-sm text-gray-600">
-          <strong>Preview</strong>
-          <div className="mt-2">
-            {blob ? (
-              <>
-                <audio controls src={audioURL} className="w-full" />
-                <div className="text-xs text-gray-500">Type: {mimeType} · Size: {sizeKB} KB</div>
-              </>
-            ) : (
-              <div className="text-gray-400">No recording yet.</div>
-            )}
+    <div className="max-w-2xl mx-auto p-5 space-y-4">
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle>🎙️ Accented Speech-to-Text (MVP)</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button onClick={start} disabled={recording || waking}>
+              Start Recording
+            </Button>
+            <Button onClick={stop} disabled={!recording} variant="destructive">
+              Stop
+            </Button>
+            <Button onClick={clear} disabled={!blob} variant="outline">
+              Clear
+            </Button>
           </div>
-        </div>
-      </div>
 
-      <div className="rounded-xl border p-4 mt-4">
-        <strong>Transcript</strong>
-        <pre className="mt-2 whitespace-pre-wrap text-sm bg-gray-50 p-3 rounded-lg border">
-          {transcript}
-        </pre>
-      </div>
+          <div className="grid gap-2">
+            <Label className="text-sm text-muted-foreground">API Base URL</Label>
+            <Input
+              value={apiBase}
+              onChange={(e) => setApiBase(e.target.value)}
+              placeholder="http://accenttranscriber.duckdns.org:8000"
+            />
+            {!ready && (
+              <Button
+                onClick={() => ensureReady().catch((e) => setStatus(`Wake failed: ${e?.message || e}`))}
+                disabled={waking}
+                variant="outline"
+                className="w-fit"
+              >
+                {waking ? "Waking…" : "Wake Server"}
+              </Button>
+            )}
+            {ready && <Badge variant="secondary">Ready</Badge>}
+          </div>
 
-      <p className="text-xs text-gray-500 mt-4">
-        Tip: Use HTTPS in production (required for mic on most browsers/iOS). Ensure your API permits CORS from this site.
-      </p>
+          <div className="flex items-center gap-3">
+            <Button onClick={upload} disabled={!blob || loading || !apiBase} variant="outline">
+              {loading ? "Processing…" : "Upload & Transcribe"}
+            </Button>
+            <span className="text-sm text-muted-foreground">{status}</span>
+          </div>
+
+          <Separator />
+
+          <div className="space-y-2 text-sm text-muted-foreground">
+            <strong className="text-foreground">Preview</strong>
+            <div>
+              {blob ? (
+                <>
+                  <audio controls src={audioURL} className="w-full" />
+                  <div className="text-xs text-muted-foreground">
+                    Type: {mimeType} · Size: {sizeKB} KB
+                  </div>
+                </>
+              ) : (
+                <div className="text-muted-foreground/70">No recording yet.</div>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle>Transcript</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <pre className="mt-1 whitespace-pre-wrap text-sm bg-muted p-3 rounded-md border">
+            {transcript}
+          </pre>
+        </CardContent>
+      </Card>
     </div>
   );
 }

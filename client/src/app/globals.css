@@ -1,26 +1,163 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:is(.dark *));
 
+/* Map Tailwind tokens to CSS variables (unchanged) */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* ===== Light (matches photo: warm paper + mint/teal accent) ===== */
+:root {
+  --radius: 0.625rem;
+
+  /* Paper-warm background with soft contrast text */
+  --background: oklch(0.985 0.004 95);          /* warm off-white */
+  --foreground: oklch(0.18 0.03 270);           /* soft charcoal */
+
+  /* Surfaces */
+  --card: oklch(0.99 0.003 95);
+  --card-foreground: var(--foreground);
+  --popover: oklch(0.99 0.003 95);
+  --popover-foreground: var(--foreground);
+
+  /* Brand accents (mint/teal like your underlines) */
+  --primary: oklch(0.78 0.12 170);              /* teal-mint */
+  --primary-foreground: oklch(0.99 0 0);
+  --accent: oklch(0.94 0.05 170);               /* light mint wash */
+  --accent-foreground: oklch(0.26 0.06 170);
+
+  /* Secondary + muted (warm gray to match backdrop) */
+  --secondary: oklch(0.96 0.01 95);
+  --secondary-foreground: oklch(0.33 0.03 265);
+  --muted: oklch(0.95 0.01 95);
+  --muted-foreground: oklch(0.55 0.02 265);
+
+  /* Feedback / destructive kept calm */
+  --destructive: oklch(0.64 0.18 25);
+  --border: oklch(0.92 0.008 95);               /* gentle warm border */
+  --input: oklch(0.93 0.006 95);
+  --ring: oklch(0.78 0.12 170);                  /* teal focus ring */
+
+  /* Charts tuned around mint/teal palette */
+  --chart-1: oklch(0.72 0.14 170);
+  --chart-2: oklch(0.68 0.10 200);
+  --chart-3: oklch(0.62 0.12 140);
+  --chart-4: oklch(0.80 0.13 90);
+  --chart-5: oklch(0.70 0.15 60);
+
+  /* Sidebar */
+  --sidebar: oklch(0.985 0.004 95);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--accent);
+  --sidebar-accent-foreground: var(--accent-foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+}
+
+/* ===== Dark (cozy charcoal + vivid mint highlights) ===== */
+.dark {
+  --background: oklch(0.18 0.03 270);
+  --foreground: oklch(0.97 0.004 95);
+
+  --card: oklch(0.22 0.03 270);
+  --card-foreground: var(--foreground);
+  --popover: oklch(0.22 0.03 270);
+  --popover-foreground: var(--foreground);
+
+  --primary: oklch(0.78 0.12 170);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.26 0.02 270);
+  --secondary-foreground: var(--foreground);
+  --muted: oklch(0.25 0.02 270);
+  --muted-foreground: oklch(0.73 0.04 270);
+
+  --accent: oklch(0.35 0.04 170);
+  --accent-foreground: oklch(0.97 0.004 95);
+
+  --destructive: oklch(0.64 0.20 25);
+  --border: oklch(0.33 0.02 270);
+  --input: oklch(0.33 0.02 270);
+  --ring: oklch(0.78 0.12 170);
+
+  --chart-1: oklch(0.78 0.12 170);
+  --chart-2: oklch(0.71 0.10 200);
+  --chart-3: oklch(0.66 0.12 140);
+  --chart-4: oklch(0.83 0.15 90);
+  --chart-5: oklch(0.76 0.15 60);
+
+  --sidebar: oklch(0.22 0.03 270);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: oklch(0.31 0.05 170);
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: oklch(0.33 0.02 270);
+  --sidebar-ring: var(--ring);
+}
+
+/* Base layer */
+@layer base {
+  * { @apply border-border outline-ring/50; }
+  body { @apply bg-background text-foreground; }
+}
+
+/* Optional helpers that fit the vibe */
+@layer utilities {
+  /* Soft paper grain feel via subtle gradient */
+  .bg-paper {
+    background-image:
+      radial-gradient(1200px 600px at 50% -10%, color-mix(in oklch, var(--accent) 6%, transparent) 0%, transparent 60%),
+      linear-gradient(to bottom, color-mix(in oklch, var(--accent) 5%, transparent), transparent 25%),
+      linear-gradient(var(--background), var(--background));
   }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  /* Mint underline for section headings like “meet our programs” */
+  .underline-mint {
+    text-underline-offset: 6px;
+    text-decoration-color: oklch(0.78 0.12 170 / 0.9);
+    text-decoration-thickness: 3px;
+  }
 }
