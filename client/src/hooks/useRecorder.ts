@@ -7,7 +7,16 @@ export function useRecorder() {
   const [blob, setBlob] = useState<Blob | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
 
-  async function start() {
+  function isTypeSupportedSafe(t: string): boolean {
+    // Some browsers (older Safari) may not implement the static
+    // MediaRecorder.isTypeSupported; guard it safely.
+    const maybe = (globalThis as unknown as {
+      MediaRecorder?: { isTypeSupported?: (mt: string) => boolean };
+    }).MediaRecorder;
+    return typeof maybe?.isTypeSupported === "function" ? !!maybe.isTypeSupported(t) : false;
+  }
+
+  async function start(): Promise<void> {
     setBlob(null);
 
     // Must be HTTPS in browsers/iOS for mic access
@@ -20,14 +29,18 @@ export function useRecorder() {
       "audio/ogg",
       "audio/mp4", // some Safari versions
     ];
-    const chosen = candidates.find(t => (window as any).MediaRecorder?.isTypeSupported?.(t)) || "audio/webm";
+
+    const chosen =
+      candidates.find((t) => isTypeSupportedSafe(t)) ?? "audio/webm";
     setMimeType(chosen);
 
     const mr = new MediaRecorder(stream, { mimeType: chosen });
     mediaRecorderRef.current = mr;
     chunksRef.current = [];
 
-    mr.ondataavailable = (e) => { if (e.data?.size) chunksRef.current.push(e.data); };
+    mr.ondataavailable = (e: BlobEvent) => {
+      if (e.data?.size) chunksRef.current.push(e.data);
+    };
     mr.onstop = () => {
       const b = new Blob(chunksRef.current, { type: chosen });
       setBlob(b);
@@ -38,12 +51,12 @@ export function useRecorder() {
     setRecording(true);
   }
 
-  function stop() {
+  function stop(): void {
     mediaRecorderRef.current?.stop();
     mediaRecorderRef.current = null;
   }
 
-  function clear() {
+  function clear(): void {
     setBlob(null);
   }
 

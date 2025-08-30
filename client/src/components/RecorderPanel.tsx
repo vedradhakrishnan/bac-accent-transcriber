@@ -13,6 +13,15 @@ import { Separator } from "@/components/ui/separator";
 
 type WakeReply = { starting: boolean; healthy?: boolean; apiBase: string };
 
+function getErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  try {
+    return typeof err === "string" ? err : JSON.stringify(err);
+  } catch {
+    return "Unknown error";
+  }
+}
+
 async function wakeServer(): Promise<WakeReply> {
   const r = await fetch("/api/wake", { method: "POST" });
   if (!r.ok) throw new Error(`Wake failed: ${r.status}`);
@@ -29,7 +38,7 @@ async function waitForHealth(apiBase: string, timeoutMs = 180_000, intervalMs = 
     } catch {
       /* ignore and retry */
     }
-    await new Promise((r) => setTimeout(r, intervalMs));
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
   }
   throw new Error("Server did not become healthy in time");
 }
@@ -62,7 +71,7 @@ export default function RecorderPanel() {
       }
       setReady(true);
       setStatus("Server is ready.");
-    } catch (e: any) {
+    } catch (e: unknown) {
       setReady(false);
       throw e;
     } finally {
@@ -75,8 +84,8 @@ export default function RecorderPanel() {
 
     try {
       await ensureReady();
-    } catch (e: any) {
-      setStatus(`Wake failed: ${e?.message || e}`);
+    } catch (e: unknown) {
+      setStatus(`Wake failed: ${getErrorMessage(e)}`);
       return;
     }
 
@@ -94,12 +103,12 @@ export default function RecorderPanel() {
       });
 
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
+      const data = (await res.json()) as { text?: string };
       setTranscript(data.text || "(no text)");
       setStatus("Done.");
-    } catch (e: any) {
+    } catch (e: unknown) {
       setStatus("Failed.");
-      setTranscript(`Error: ${e?.message || e}`);
+      setTranscript(`Error: ${getErrorMessage(e)}`);
     } finally {
       setLoading(false);
     }
@@ -133,7 +142,11 @@ export default function RecorderPanel() {
             />
             {!ready && (
               <Button
-                onClick={() => ensureReady().catch((e) => setStatus(`Wake failed: ${e?.message || e}`))}
+                onClick={() =>
+                  ensureReady().catch((e: unknown) =>
+                    setStatus(`Wake failed: ${getErrorMessage(e)}`)
+                  )
+                }
                 disabled={waking}
                 variant="outline"
                 className="w-fit"
